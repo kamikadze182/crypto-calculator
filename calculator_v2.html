@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Калькулятор позиции</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 400px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        input {
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            box-sizing: border-box;
+        }
+        button {
+            width: 100%;
+            padding: 15px;
+            background: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            cursor: pointer;
+            margin: 5px 0;
+        }
+        button:hover {
+            background: #45a049;
+        }
+        .result {
+            margin-top: 20px;
+            padding: 15px;
+            background: #e8f5e9;
+            border-radius: 5px;
+            font-size: 16px;
+            display: none;
+        }
+        label {
+            display: block;
+            margin-top: 10px;
+            color: #555;
+            font-weight: bold;
+        }
+        .info {
+            background: #e3f2fd;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+            font-size: 12px;
+            color: #1976d2;
+        }
+        .group {
+            background: #f9f9f9;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 15px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>📊 Калькулятор позиции</h2>
+        
+        <div class="info">
+            💡 Введите баланс вручную из приложения OKX
+        </div>
+
+        <div class="group">
+            <h3 style="margin-top:0;">💰 Депозит</h3>
+            <label>Доступный баланс ($):</label>
+            <input type="number" id="deposit" placeholder="10000" step="0.01">
+        </div>
+
+        <div class="group">
+            <h3 style="margin-top:0;">⚙️ Параметры сделки</h3>
+            
+            <label>Риск на сделку (%):</label>
+            <input type="number" id="risk" placeholder="0.5" value="0.5" step="0.1">
+            
+            <label>Цена входа:</label>
+            <input type="number" id="entryPrice" placeholder="50000" step="0.01">
+            
+            <label>Стоп-лосс:</label>
+            <input type="number" id="stopLoss" placeholder="49000" step="0.01">
+            
+            <label>Плечо (leverage):</label>
+            <input type="number" id="leverage" placeholder="10" value="10" min="1" max="125">
+        </div>
+
+        <div class="group">
+            <h3 style="margin-top:0;">💸 Комиссии</h3>
+            
+            <label>Комиссия за открытие (%):</label>
+            <input type="number" id="commissionOpen" placeholder="0.02" value="0.02" step="0.01">
+            
+            <label>Комиссия за закрытие (%):</label>
+            <input type="number" id="commissionClose" placeholder="0.05" value="0.05" step="0.01">
+        </div>
+        
+        <button onclick="calculate()">🔍 Рассчитать объем позиции</button>
+        
+        <div class="result" id="result"></div>
+    </div>
+
+    <script>
+        // Автосохранение и загрузка последних значений
+        function saveValues() {
+            const values = {
+                deposit: document.getElementById('deposit').value,
+                risk: document.getElementById('risk').value,
+                entryPrice: document.getElementById('entryPrice').value,
+                stopLoss: document.getElementById('stopLoss').value,
+                leverage: document.getElementById('leverage').value,
+                commissionOpen: document.getElementById('commissionOpen').value,
+                commissionClose: document.getElementById('commissionClose').value
+            };
+            localStorage.setItem('calculatorValues', JSON.stringify(values));
+        }
+
+        function loadValues() {
+            const saved = localStorage.getItem('calculatorValues');
+            if (saved) {
+                const values = JSON.parse(saved);
+                Object.keys(values).forEach(key => {
+                    const element = document.getElementById(key);
+                    if (element && values[key]) {
+                        element.value = values[key];
+                    }
+                });
+            }
+        }
+
+        function calculate() {
+            const deposit = parseFloat(document.getElementById('deposit').value);
+            const riskPercent = parseFloat(document.getElementById('risk').value);
+            const entryPrice = parseFloat(document.getElementById('entryPrice').value);
+            const stopLoss = parseFloat(document.getElementById('stopLoss').value);
+            const commissionOpen = parseFloat(document.getElementById('commissionOpen').value);
+            const commissionClose = parseFloat(document.getElementById('commissionClose').value);
+            const leverage = parseFloat(document.getElementById('leverage').value) || 1;
+            
+            // Валидация
+            if (!deposit || !riskPercent || !entryPrice || !stopLoss) {
+                alert('❌ Заполните все обязательные поля!');
+                return;
+            }
+
+            if (stopLoss === entryPrice) {
+                alert('❌ Стоп-лосс не может быть равен цене входа!');
+                return;
+            }
+            
+            // Сохраняем значения
+            saveValues();
+            
+            // Расчеты
+            const riskAmount = deposit * (riskPercent / 100); // Сумма риска в $
+            const slDistance = Math.abs(entryPrice - stopLoss); // Расстояние до SL в $
+            const slPercent = (slDistance / entryPrice) * 100; // SL в процентах от цены
+            const totalCommission = commissionOpen + commissionClose; // Общая комиссия
+            
+            // Объем позиции без плеча
+            // const basePositionSize = riskAmount / (slPercent / 100 + totalCommission / 100);
+            const basePositionSize = (deposit * (riskPercent - totalCommission) / 100) / (slPercent / 100);
+            
+            // Объем позиции с учетом плеча
+            const positionSize = basePositionSize;
+            
+            // Необходимая маржа (с учетом плеча)
+            const margin = positionSize / leverage;
+            
+            // Количество монет/контрактов
+            const quantity = positionSize / entryPrice;
+            
+            // Комиссия в долларах
+            const totalCommissionUSD = positionSize * (totalCommission / 100);
+            
+            // Фактический убыток (с учетом комиссии)
+            const actualLoss = riskAmount;
+            
+            // Направление сделки
+            const direction = stopLoss < entryPrice ? 'LONG 📈' : 'SHORT 📉';
+            
+            // Вывод результата
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = `
+                <strong style="font-size: 18px; color: #2e7d32;">Результаты расчета:</strong>
+                <hr style="margin: 10px 0;">
+                
+                <div style="margin: 10px 0;">
+                    <strong>Направление:</strong> ${direction}
+                </div>
+                
+                <div style="margin: 10px 0;">
+                    <strong>Объем позиции:</strong> <span style="color: #1976d2; font-size: 18px;">$${positionSize.toFixed(2)}</span>
+                </div>
+                
+                <div style="margin: 10px 0;">
+                    <strong>Требуемая маржа:</strong> <span style="color: #f57c00;">$${margin.toFixed(2)}</span>
+                </div>
+                
+                <div style="margin: 10px 0;">
+                    <strong>Количество:</strong> ${quantity.toFixed(6)}
+                </div>
+                
+                <div style="margin: 10px 0;">
+                    <strong>Комиссия:</strong> $${totalCommissionUSD.toFixed(2)} (${totalCommission}%)
+                </div>
+                
+                <div style="margin: 10px 0;">
+                    <strong>Макс. убыток:</strong> <span style="color: #d32f2f;">$${actualLoss.toFixed(2)}</span> (${riskPercent}% от депозита)
+                </div>
+                
+                <div style="margin: 10px 0;">
+                    <strong>Расстояние до SL:</strong> ${slPercent.toFixed(2)}% ($${slDistance.toFixed(2)})
+                </div>
+                
+                <div style="margin: 10px 0;">
+                    <strong>Плечо:</strong> ${leverage}x
+                </div>
+                
+                <hr style="margin: 10px 0;">
+                
+                <div style="font-size: 12px; color: #666; margin-top: 10px;">
+                    ⚠️ Убедитесь, что маржа ($${margin.toFixed(2)}) не превышает ваш доступный баланс ($${deposit.toFixed(2)})
+                </div>
+            `;
+            resultDiv.style.display = 'block';
+            
+            // Прокрутка к результату
+            resultDiv.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+
+        // Загрузка сохраненных значений при старте
+        window.onload = loadValues;
+        
+        // Расчет по Enter
+        document.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') calculate();
+        });
+
+        // Автосохранение при изменении полей
+        ['deposit', 'risk', 'entryPrice', 'stopLoss', 'leverage', 'commissionOpen', 'commissionClose'].forEach(id => {
+            const element = document.getElementById(id);
+            if (element) {
+                element.addEventListener('input', saveValues);
+            }
+        });
+    </script>
+</body>
+</html>
