@@ -181,6 +181,9 @@
             
             // Необходимая маржа (с учетом плеча)
             const margin = positionSize / leverage;
+
+            // Маржа в % от депозита
+	        const marginPercent = (margin / deposit) * 100
             
             // Количество монет/контрактов
             const quantity = positionSize / entryPrice;
@@ -230,6 +233,10 @@
                 
                 <div style="margin: 10px 0;">
                     <strong>Плечо:</strong> ${leverage}x
+                </div>
+
+                <div style="margin: 10px 0;">
+                    <strong>Маржа в % от депозита:</strong> ${marginPercent.toFixed(2)}%
                 </div>
                 
                 <hr style="margin: 10px 0;">
