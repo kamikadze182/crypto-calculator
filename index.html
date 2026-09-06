@@ -181,8 +181,11 @@
             // Убыток по стоп-лоссу
             const slLoss = positionSize * (slPercent / 100)
             
-            // Фактический убыток (без учета комиссии)
+            // Фактический убыток (c учетом комиссии)
             const actualLoss = slLoss + totalCommissionUSD;
+
+            // Расчетный убыток к депозиту
+            const finalLoss = (actualLoss / deposit) * 100
             
             // Вывод результата
             const resultDiv = document.getElementById('result');
@@ -207,7 +210,7 @@
                 </div>
                 
                 <div style="margin: 10px 0;">
-                    <strong>Фактический убыток:</strong> <span style="color: #d32f2f;">$${actualLoss.toFixed(2)}</span> (${riskPercent}% от депозита)
+                    <strong>Фактический убыток:</strong> <span style="color: #d32f2f;">$${actualLoss.toFixed(2)}</span> (${finalLoss.toFixed(2)}% от депозита)
                 </div>
                 
                 <div style="margin: 10px 0;">
